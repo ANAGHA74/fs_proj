@@ -57,9 +57,9 @@ You can switch roles by logging out and logging in with a different `@example.co
 
 ## Next Steps (Potential)
 
-*   Integrate Firebase Authentication.
-*   Connect to a database (Firestore or Realtime Database) to persist data.
-*   Implement real file uploads for absence documents (e.g., to Cloud Storage).
+*   Integrate MongoDb Authentication.
+*   Connect to a database to persist data.
+*   Implement real file uploads for absence documents (e.g., to Cloud Storage) using multer.
 *   Refine role-based permissions and data fetching.
 *   Add more detailed reporting features.
 *   Implement notifications (e.g., for teachers when an absence is submitted).
