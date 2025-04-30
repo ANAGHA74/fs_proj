@@ -1,4 +1,4 @@
-# AttendEase - Firebase Studio
+# AttendEase 
 
 This is a Next.js application for managing student attendance, built within Firebase Studio.
 
