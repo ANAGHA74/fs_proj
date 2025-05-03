@@ -1,15 +1,16 @@
-
 "use client";
 
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User as UserIcon } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth'; // Import useAuth
 import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
+import type { User } from '@/types/user';
+
 
 
 export function AppHeader() {
@@ -44,7 +45,7 @@ export function AppHeader() {
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                             <Avatar className="h-9 w-9">
-                                <AvatarImage src={user.avatar} alt={user.name} />
+                                
                                 <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <span className="sr-only">Toggle user menu</span>
@@ -62,7 +63,7 @@ export function AppHeader() {
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem disabled> {/* Disable profile link for now */}
-                            <User className="mr-2 h-4 w-4" />
+                            <UserIcon className="mr-2 h-4 w-4" />
                             <span>Profile</span>
                             {/* Add Link or onClick handler for profile page */}
                             {/* <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut> */}

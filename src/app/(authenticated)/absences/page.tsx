@@ -55,7 +55,7 @@ import {
 // --- Placeholder Data & Fetching Simulation ---
 
 // Simulate fetching absence submissions (can be filtered by student ID or fetch all for Teacher/Admin)
-const fetchAbsenceSubmissions = (role: 'Admin' | 'Teacher' | 'Student', userId?: string) => {
+const fetchAbsenceSubmissions = (role: 'admin' | 'teacher' | 'student', userId?: string) => {
     console.log(`Fetching absences for Role: ${role}, UserID: ${userId}`);
     // Simulate API call
     const allSubmissions = [
@@ -67,7 +67,7 @@ const fetchAbsenceSubmissions = (role: 'Admin' | 'Teacher' | 'Student', userId?:
          // Add more submissions as needed
     ];
 
-    if (role === 'Student' && userId) {
+    if (role === 'student' && userId) {
         return allSubmissions.filter(sub => sub.studentId === userId);
     }
     // Teachers/Admins see all (or potentially filtered by their classes in a real app)
@@ -145,7 +145,7 @@ const AbsencesPage: FC = () => {
 
     const handleSubmitAbsence = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if (!user || user.role !== 'Student') return; // Should not happen due to conditional rendering
+        if (!user || user.role !== 'student') return; // Should not happen due to conditional rendering
 
         if (!absenceDate || !reason) {
              toast({ title: "Missing Information", description: "Please select a date and provide a reason.", variant: "destructive" });
@@ -251,11 +251,11 @@ const AbsencesPage: FC = () => {
     return (
         <div className="container mx-auto py-6 space-y-6">
             <h1 className="text-3xl font-bold text-primary">
-                 {user.role === 'Student' ? 'My Absence Explanations' : 'Absence Explanations Management'}
+                 {user.role === 'student' ? 'My Absence Explanations' : 'Absence Explanations Management'}
             </h1>
 
              {/* Submission Form - Only for Students */}
-             {user.role === 'Student' && (
+             {user.role === 'student' && (
                 <Card className="shadow-sm">
                     <CardHeader>
                         <CardTitle>Submit Absence Explanation</CardTitle>
@@ -342,9 +342,9 @@ const AbsencesPage: FC = () => {
             {/* Review Table / Student History Table */}
             <Card className="shadow-sm">
                 <CardHeader>
-                    <CardTitle>{user.role === 'Student' ? 'My Submission History' : 'Review Absence Submissions'}</CardTitle>
+                    <CardTitle>{user.role === 'student' ? 'My Submission History' : 'Review Absence Submissions'}</CardTitle>
                      <CardDescription>
-                         {user.role === 'Student' ? 'Track the status of your explanations.' : 'Approve or reject student absence explanations.'}
+                         {user.role === 'student' ? 'Track the status of your explanations.' : 'Approve or reject student absence explanations.'}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -361,7 +361,7 @@ const AbsencesPage: FC = () => {
                                 <TableHeader>
                                     <TableRow>
                                          {/* Show Student Name only for Teacher/Admin */}
-                                        {(user.role === 'Admin' || user.role === 'Teacher') && <TableHead>Student</TableHead>}
+                                        {(user.role === 'admin' || user.role === 'teacher') && <TableHead>Student</TableHead>}
                                         <TableHead>Date</TableHead>
                                         <TableHead>Reason</TableHead>
                                         <TableHead>Status</TableHead>
@@ -372,7 +372,7 @@ const AbsencesPage: FC = () => {
                                 <TableBody>
                                     {submissions.length > 0 ? submissions.map((submission) => (
                                         <TableRow key={submission.id}>
-                                            {(user.role === 'Admin' || user.role === 'Teacher') && <TableCell className="font-medium">{submission.studentName}</TableCell>}
+                                            {(user.role === 'admin' || user.role === 'teacher') && <TableCell className="font-medium">{submission.studentName}</TableCell>}
                                             <TableCell>{format(submission.date, "MMM d, yyyy")}</TableCell>
                                             <TableCell className="max-w-[200px] truncate">
                                                 <TooltipProvider delayDuration={100}>
@@ -421,7 +421,7 @@ const AbsencesPage: FC = () => {
                                                     </Tooltip>
 
                                                     {/* Approve/Reject Actions - Teacher/Admin & Pending Only */}
-                                                     {(user.role === 'Admin' || user.role === 'Teacher') && submission.status === 'Pending' && (
+                                                     {(user.role === 'admin' || user.role === 'teacher') && submission.status === 'Pending' && (
                                                         <>
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
@@ -448,7 +448,7 @@ const AbsencesPage: FC = () => {
                                         </TableRow>
                                     )) : (
                                          <TableRow>
-                                             <TableCell colSpan={(user.role === 'Admin' || user.role === 'Teacher') ? 6 : 5} className="text-center h-24 text-muted-foreground">
+                                             <TableCell colSpan={(user.role === 'admin' || user.role === 'teacher') ? 6 : 5} className="text-center h-24 text-muted-foreground">
                                                 No absence submissions found.
                                              </TableCell>
                                          </TableRow>

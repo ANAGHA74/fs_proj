@@ -15,58 +15,69 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from '@/hooks/use-auth'; // Import useAuth
 import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
+import { useEffect, useState } from 'react';
 
-// Placeholder data - replace with actual data fetching
-const usersData = [
-    { id: 'user-1', name: 'Admin User', email: 'admin@example.com', role: 'Admin', status: 'Active' },
-    { id: 'user-2', name: 'Teacher Alice', email: 'teacher@example.com', role: 'Teacher', status: 'Active' },
-    { id: 'user-3', name: 'Teacher Bob', email: 'teacher.bob@example.com', role: 'Teacher', status: 'Inactive' },
-    { id: 'user-4', name: 'Student Charlie', email: 'student@example.com', role: 'Student', status: 'Active' },
-    { id: 'user-5', name: 'Student Diana', email: 'student.diana@example.com', role: 'Student', status: 'Active' },
-];
+type UserType = {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+};
 
 const roles = ['Admin', 'Teacher', 'Student'];
 
 const UsersPage: FC = () => {
     const { user, loading } = useAuth(); // Use auth hook
-    const [users, setUsers] = React.useState(usersData);
+    const [users, setUsers] = useState<UserType[]>([]);
     const [searchTerm, setSearchTerm] = React.useState("");
     const [isAddUserDialogOpen, setIsAddUserDialogOpen] = React.useState(false);
     const [isEditUserDialogOpen, setIsEditUserDialogOpen] = React.useState(false);
-    const [editingUser, setEditingUser] = React.useState<typeof usersData[0] | null>(null);
+    const [editingUser, setEditingUser] = React.useState<UserType | null>(null);
     const [isSubmitting, setIsSubmitting] = React.useState(false); // For form submissions
 
-    const handleEditUserClick = (userToEdit: typeof usersData[0]) => {
+    useEffect(() => {
+        fetch('/api/users')
+            .then(res => res.json())
+            .then(data => setUsers(data));
+    }, []);
+
+    const handleEditUserClick = (userToEdit: UserType) => {
         setEditingUser(userToEdit);
         setIsEditUserDialogOpen(true);
     };
 
     // Add user form handling (simplified) - Admin only
-    const handleAddUser = (event: React.FormEvent<HTMLFormElement>) => {
+    const handleAddUser = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-         if (user?.role !== 'Admin') return;
-         setIsSubmitting(true);
+        if (user?.role !== 'admin') return;
+        setIsSubmitting(true);
         const formData = new FormData(event.currentTarget);
         const newUser = {
-            id: `user-${Date.now()}`, // Simple ID generation
             name: formData.get('name') as string,
             email: formData.get('email') as string,
-            role: formData.get('role') as string,
-            status: 'Active', // Default status
+            role: (formData.get('role') as string).toLowerCase(),
+            status: 'Active',
+            password: formData.get('password') as string,
         };
-        // Simulate API call
-        setTimeout(() => {
-             console.log("Adding user:", newUser);
-            setUsers([...users, newUser]);
-             setIsSubmitting(false);
-            setIsAddUserDialogOpen(false);
-         }, 500);
+        // Send to backend API
+        const res = await fetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newUser),
+        });
+        if (res.ok) {
+            const created = await res.json();
+            setUsers([...users, created]);
+        }
+        setIsSubmitting(false);
+        setIsAddUserDialogOpen(false);
     };
 
     // Edit user form handling (simplified) - Admin only
      const handleEditUser = (event: React.FormEvent<HTMLFormElement>) => {
          event.preventDefault();
-         if (!editingUser || user?.role !== 'Admin') return;
+         if (!editingUser || user?.role !== 'admin') return;
          setIsSubmitting(true);
 
          const formData = new FormData(event.currentTarget);
@@ -81,7 +92,7 @@ const UsersPage: FC = () => {
          // Simulate API call
         setTimeout(() => {
              console.log("Updating user:", updatedUser);
-            setUsers(users.map(u => u.id === editingUser.id ? updatedUser : u));
+            setUsers(users.map(u => u._id === editingUser._id ? updatedUser : u));
              setIsSubmitting(false);
              setIsEditUserDialogOpen(false);
              setEditingUser(null);
@@ -89,8 +100,8 @@ const UsersPage: FC = () => {
     };
 
     const handleDeleteUser = (userId: string) => {
-         if (user?.role !== 'Admin') return;
-         const userToDelete = users.find(u => u.id === userId);
+         if (user?.role !== 'admin') return;
+         const userToDelete = users.find(u => u._id === userId);
          if (userToDelete?.role === 'Admin') {
              alert("Cannot delete the primary Admin user (simulated).");
              return;
@@ -99,7 +110,7 @@ const UsersPage: FC = () => {
             // Simulate API call
              setTimeout(() => {
                 console.log("Deleting user:", userId);
-                setUsers(users.filter(u => u.id !== userId));
+                setUsers(users.filter(u => u._id !== userId));
              }, 300);
          }
     };
@@ -111,7 +122,8 @@ const UsersPage: FC = () => {
         return nameMatch || emailMatch;
     });
 
-    const getRoleBadge = (role: string) => {
+    const getRoleBadge = (role: string | undefined) => {
+        if (!role) return <Badge variant="secondary">Unknown</Badge>;
         switch (role.toLowerCase()) {
         case 'admin':
             return <Badge variant="destructive"><ShieldCheck className="mr-1 h-3 w-3"/>Admin</Badge>;
@@ -136,7 +148,7 @@ const UsersPage: FC = () => {
      }
 
      // Enforce Admin-only access
-     if (user?.role !== 'Admin') {
+     if (user?.role !== 'admin') {
          return (
              <div className="container mx-auto py-6 text-center">
                 <Info className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -173,6 +185,10 @@ const UsersPage: FC = () => {
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="add-user-email" className="text-right">Email</Label>
                                 <Input id="add-user-email" name="email" type="email" className="col-span-3" required disabled={isSubmitting}/>
+                            </div>
+                             <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="add-user-password" className="text-right">Password</Label>
+                                <Input id="add-user-password" name="password" type="password" className="col-span-3" required disabled={isSubmitting}/>
                             </div>
                              <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="add-user-role" className="text-right">Role</Label>
@@ -286,7 +302,7 @@ const UsersPage: FC = () => {
                             </TableHeader>
                             <TableBody>
                                 {filteredUsers.length > 0 ? filteredUsers.map((u) => (
-                                    <TableRow key={u.id}>
+                                    <TableRow key={u._id}>
                                         <TableCell className="font-medium">{u.name}</TableCell>
                                         <TableCell>{u.email}</TableCell>
                                         <TableCell>{getRoleBadge(u.role)}</TableCell>
@@ -298,7 +314,7 @@ const UsersPage: FC = () => {
                                         <TableCell className="text-right">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" className="h-8 w-8 p-0" disabled={u.role === 'Admin' && u.id === user?.id}> {/* Prevent actions on self if admin */}
+                                                    <Button variant="ghost" className="h-8 w-8 p-0" disabled={u.role === 'Admin' && u._id === user?.id}> {/* Prevent actions on self if admin */}
                                                         <span className="sr-only">Open menu</span>
                                                         <MoreHorizontal className="h-4 w-4" />
                                                     </Button>
@@ -311,7 +327,7 @@ const UsersPage: FC = () => {
                                                     <DropdownMenuSeparator />
                                                     <DropdownMenuItem
                                                         className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                                                        onClick={() => handleDeleteUser(u.id)}
+                                                        onClick={() => handleDeleteUser(u._id)}
                                                         disabled={u.role === 'Admin'} // Prevent deleting admin
                                                     >
                                                         <Trash2 className="mr-2 h-4 w-4" /> Delete User

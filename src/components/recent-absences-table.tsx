@@ -21,19 +21,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { UserRole } from "@/types/auth"; // Import UserRole type
+import type { UserRole } from "@/types/user";
 
 // --- Placeholder Data & Fetching Simulation ---
 // In a real app, this data would likely come from props or a context/store
 // fetched based on the user's role and potentially ID in the parent component (Dashboard).
 
-const allRecentAbsences = [
-  { id: '1', studentId: 'stu-1', studentName: 'Alice Smith', date: new Date(2024, 6, 21), reason: 'Doctor appointment', status: 'Pending', hasAttachment: true },
-  { id: '2', studentId: 'stu-2', studentName: 'Bob Johnson', date: new Date(2024, 6, 20), reason: 'Family emergency', status: 'Approved', hasAttachment: false },
-  { id: '3', studentId: 'stu-3', studentName: 'Charlie Brown', date: new Date(2024, 6, 19), reason: 'Feeling unwell', status: 'Rejected', hasAttachment: true },
-  { id: '4', studentId: 'stu-1', studentName: 'Alice Smith', date: new Date(2024, 6, 18), reason: 'Team competition', status: 'Pending', hasAttachment: false },
-  { id: '5', studentId: 'stu-5', studentName: 'Ethan Hunt', date: new Date(2024, 7, 1), reason: 'College visit.', status: 'Approved', hasAttachment: false },
-];
 
 interface RecentAbsencesTableProps {
     userRole: UserRole;
@@ -46,21 +39,13 @@ export function RecentAbsencesTable({ userRole, userId }: RecentAbsencesTablePro
 
     React.useEffect(() => {
         setLoading(true);
-        // Simulate fetching data based on role
-        setTimeout(() => {
-            let filteredData;
-            if (userRole === 'Student' && userId) {
-                filteredData = allRecentAbsences.filter(a => a.studentId === userId);
-            } else { // Admin/Teacher see all (or maybe just pending for dashboard?) - showing all for now
-                // Optionally filter for pending only for Admin/Teacher dashboard view:
-                // filteredData = allRecentAbsences.filter(a => a.status === 'Pending');
-                filteredData = allRecentAbsences; // Show all recent for now
-            }
-             setRecentAbsences(filteredData.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 5)); // Show top 5 most recent
-             setLoading(false);
-        }, 300); // Simulate delay
-    }, [userRole, userId]);
-
+        fetch('/api/absences')
+            .then(res => res.json())
+            .then(data => {
+                setRecentAbsences(data);
+                setLoading(false);
+            });
+    }, []);
 
     const getStatusBadge = (status: string) => {
         switch (status.toLowerCase()) {
@@ -91,18 +76,18 @@ export function RecentAbsencesTable({ userRole, userId }: RecentAbsencesTablePro
         <TableHeader>
           <TableRow>
             {/* Show Student Name only for Teacher/Admin */}
-            {(userRole === 'Admin' || userRole === 'Teacher') && <TableHead>Student</TableHead>}
+            {(userRole === 'admin' || userRole === 'teacher') && <TableHead>Student</TableHead>}
             <TableHead>Date</TableHead>
             <TableHead>Reason</TableHead>
             <TableHead>Status</TableHead>
             {/* Show Actions only for Teacher/Admin */}
-            {(userRole === 'Admin' || userRole === 'Teacher') && <TableHead className="text-right">Actions</TableHead>}
+            {(userRole === 'admin' || userRole === 'teacher') && <TableHead className="text-right">Actions</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
           {recentAbsences.length > 0 ? recentAbsences.map((absence) => (
             <TableRow key={absence.id}>
-              {(userRole === 'Admin' || userRole === 'Teacher') && <TableCell className="font-medium">{absence.studentName}</TableCell>}
+              {(userRole === 'admin' || userRole === 'teacher') && <TableCell className="font-medium">{absence.studentName}</TableCell>}
               <TableCell>{format(absence.date, "MMM d, yyyy")}</TableCell>
               <TableCell className="max-w-[150px] truncate">
                 <TooltipProvider>
@@ -128,7 +113,7 @@ export function RecentAbsencesTable({ userRole, userId }: RecentAbsencesTablePro
               </TableCell>
               <TableCell>{getStatusBadge(absence.status)}</TableCell>
               {/* Show actions column only for Admin/Teacher */}
-              {(userRole === 'Admin' || userRole === 'Teacher') && (
+              {(userRole === 'admin' || userRole === 'teacher') && (
                 <TableCell className="text-right space-x-1">
                   <TooltipProvider>
                       {/* View Details Action */}
@@ -176,7 +161,7 @@ export function RecentAbsencesTable({ userRole, userId }: RecentAbsencesTablePro
             </TableRow>
           )) : (
              <TableRow>
-                <TableCell colSpan={(userRole === 'Admin' || userRole === 'Teacher') ? 5 : 4} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={(userRole === 'admin' || userRole === 'teacher') ? 5 : 4} className="h-24 text-center text-muted-foreground">
                     No recent absence submissions found.
                 </TableCell>
             </TableRow>

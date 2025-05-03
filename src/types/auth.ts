@@ -1,5 +1,6 @@
 // src/types/auth.ts
-export type UserRole = 'Admin' | 'Teacher' | 'Student';
+
+import type { UserRole } from './user';
 
 export interface User {
     id: string;

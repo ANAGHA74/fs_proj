@@ -2,85 +2,65 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import type { UserRole } from '@/types/auth'; // Assuming types/auth.ts exists or will be created
+import { useRouter } from 'next/navigation';
+import type { UserRole } from '@/types/user';
 
-// In a real app, this would involve context, fetching user data, checking tokens, etc.
-// For simulation purposes, we'll use localStorage to persist the role across refreshes.
-
-const defaultUser = {
-    id: 'user-placeholder',
-    name: 'Placeholder User',
-    email: 'placeholder@example.com',
-    role: 'Admin' as UserRole, // Default to Admin for easy testing initially
-    avatar: 'https://picsum.photos/100', // Placeholder avatar
-};
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+}
 
 export function useAuth() {
-  const [user, setUser] = useState<typeof defaultUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    // Simulate fetching user data and role
-    const storedRole = localStorage.getItem('userRole') as UserRole | null;
-    const roleToUse = storedRole || defaultUser.role; // Use stored role or default
-
-    // Update user based on role (simple simulation)
-    let simulatedUser = { ...defaultUser, role: roleToUse };
-    if (roleToUse === 'Teacher') {
-      simulatedUser.name = 'Teacher User';
-      simulatedUser.email = 'teacher@example.com';
-    } else if (roleToUse === 'Student') {
-      simulatedUser.name = 'Student User';
-      simulatedUser.email = 'student@example.com';
-    } else {
-         simulatedUser.name = 'Admin User';
-         simulatedUser.email = 'admin@attendease.com';
-    }
-
-
-    setUser(simulatedUser);
-    setLoading(false);
+    const checkAuth = async () => {
+      try {
+        // Check if we have a stored user in localStorage
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (error) {
+        console.error('Auth error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkAuth();
   }, []);
 
-  const setRole = (role: UserRole) => {
-    localStorage.setItem('userRole', role);
-    // Update user state immediately for responsiveness
-     let simulatedUser = { ...defaultUser, role: role };
-     if (role === 'Teacher') {
-        simulatedUser.name = 'Teacher User';
-        simulatedUser.email = 'teacher@example.com';
-     } else if (role === 'Student') {
-        simulatedUser.name = 'Student User';
-        simulatedUser.email = 'student@example.com';
-     } else {
-        simulatedUser.name = 'Admin User';
-        simulatedUser.email = 'admin@attendease.com';
-     }
-    setUser(simulatedUser);
-     // Optionally force a reload or use router to re-render dependent components cleanly
-     // window.location.reload(); // Or router.refresh() if using Next.js App Router effectively
+  const login = async (email: string, password: string) => {
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseData.error || 'Login failed');
+      }
+
+      setUser(responseData.user);
+      localStorage.setItem('user', JSON.stringify(responseData.user));
+      return responseData.user;
+    } catch (error) {
+      throw error;
+    }
   };
 
-  // Simulate login - in real app, this would set tokens, user data, etc.
-   const login = (email: string) => {
-     // Determine role based on email for simulation
-     let role: UserRole = 'Student'; // Default to student
-     if (email.startsWith('admin')) {
-         role = 'Admin';
-     } else if (email.startsWith('teacher')) {
-         role = 'Teacher';
-     }
-     setRole(role);
-     return role; // Return the role for redirection logic
-   };
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('user');
+    router.push('/login');
+  };
 
-   // Simulate logout
-   const logout = () => {
-        localStorage.removeItem('userRole');
-        setUser(null); // Clear user state
-        // In a real app: clear tokens, redirect, etc.
-   };
-
-
-  return { user, loading, setRole, login, logout };
+  return { user, loading, login, logout };
 }

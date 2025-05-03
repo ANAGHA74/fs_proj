@@ -36,7 +36,7 @@ const ProfilePage: FC = () => {
     const [isLoadingDetails, setIsLoadingDetails] = React.useState(true);
 
     React.useEffect(() => {
-        if (user && user.role === 'Student') {
+        if (user && user.role === 'student') {
             setIsLoadingDetails(true);
             // Simulate fetching additional profile details
             setTimeout(() => {
@@ -44,7 +44,7 @@ const ProfilePage: FC = () => {
                 setProfileDetails(details);
                 setIsLoadingDetails(false);
             }, 500);
-        } else if (!loading && user?.role !== 'Student') {
+        } else if (!loading && user?.role !== 'student') {
              setIsLoadingDetails(false); // No details to load for non-students on this page
         }
     }, [user, loading]);
@@ -76,7 +76,7 @@ const ProfilePage: FC = () => {
     }
 
     // Redirect or show message if not a student
-     if (user?.role !== 'Student') {
+     if (user?.role !== 'student') {
          return (
              <div className="container mx-auto py-6 text-center">
                 <Info className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -94,7 +94,7 @@ const ProfilePage: FC = () => {
                 <CardHeader>
                     <div className="flex flex-col sm:flex-row items-center gap-4">
                          <Avatar className="h-20 w-20">
-                            <AvatarImage src={user.avatar} alt={user.name} />
+                            
                             <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1 text-center sm:text-left">

@@ -57,23 +57,41 @@ const RegisterPage: FC = () => {
   });
 
   // Placeholder registration function
-  const onSubmit = (data: RegisterFormValues) => {
-     setIsSubmitting(true);
-    console.log("Simulated Registration attempt:", data);
-    // In a real app, call your registration API here.
-    // This simulation always succeeds.
+  const onSubmit = async (data: RegisterFormValues) => {
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          role: data.role.toLowerCase(), // Ensure role is lowercase
+        }),
+      });
 
-     // Simulate API call delay
-    setTimeout(() => {
-        toast({
-            title: "Registration Successful (Simulated)",
-            description: `Account created for ${data.email} as a ${data.role}. Redirecting to login...`,
-        });
+      const responseData = await response.json();
 
-        // Redirect to the login page
-        router.push('/login');
-         setIsSubmitting(false); // Reset submission state (though redirecting anyway)
-    }, 500);
+      if (!response.ok) {
+        throw new Error(responseData.error || 'Registration failed');
+      }
+
+      toast({
+        title: "Registration Successful",
+        description: `Account created for ${data.email}. You can now log in.`,
+      });
+
+      router.push('/login');
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: error?.message || 'An error occurred during registration',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

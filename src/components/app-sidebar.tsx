@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -93,27 +92,30 @@ export function AppSidebar() {
                     {/* Common: Dashboard */}
                     <SidebarMenuItem>
                         <Link href="/dashboard" passHref>
-                            <SidebarMenuButton isActive={isActive('/dashboard')} icon={<Home />} tooltip="Dashboard">
+                            <SidebarMenuButton isActive={isActive('/dashboard')} tooltip="Dashboard">
+                                <Home className="mr-2" />
                                 Dashboard
                             </SidebarMenuButton>
                         </Link>
                     </SidebarMenuItem>
 
                      {/* Teacher & Admin: Attendance Management */}
-                     {(user.role === 'Admin' || user.role === 'Teacher') && (
+                     {(user.role === 'admin' || user.role === 'teacher') && (
                         <SidebarMenuItem>
                             <Link href="/attendance" passHref>
-                                <SidebarMenuButton isActive={isActive('/attendance')} icon={<CalendarCheck />} tooltip="Attendance">
+                                <SidebarMenuButton isActive={isActive('/attendance')} tooltip="Attendance">
+                                    <CalendarCheck className="mr-2" />
                                     Attendance
                                 </SidebarMenuButton>
                             </Link>
                         </SidebarMenuItem>
                      )}
                       {/* Student: View Own Attendance */}
-                      {user.role === 'Student' && (
+                      {user.role === 'student' && (
                           <SidebarMenuItem>
                               <Link href="/attendance" passHref>
-                                  <SidebarMenuButton isActive={isActive('/attendance')} icon={<CalendarCheck />} tooltip="My Attendance">
+                                  <SidebarMenuButton isActive={isActive('/attendance')} tooltip="My Attendance">
+                                      <CalendarCheck className="mr-2" />
                                       My Attendance
                                   </SidebarMenuButton>
                               </Link>
@@ -122,10 +124,11 @@ export function AppSidebar() {
 
 
                     {/* Teacher & Admin: Student Management (Admin has full CRUD) */}
-                    {(user.role === 'Admin' || user.role === 'Teacher') && (
+                    {(user.role === 'admin' || user.role === 'teacher') && (
                          <SidebarMenuItem>
                             <Link href="/students" passHref>
-                                <SidebarMenuButton isActive={isActive('/students')} icon={<Users />} tooltip="Students">
+                                <SidebarMenuButton isActive={isActive('/students')} tooltip="Students">
+                                    <Users className="mr-2" />
                                     Students
                                 </SidebarMenuButton>
                             </Link>
@@ -135,17 +138,19 @@ export function AppSidebar() {
                      {/* All Roles: Absence Explanations (Different views) */}
                      <SidebarMenuItem>
                         <Link href="/absences" passHref>
-                            <SidebarMenuButton isActive={isActive('/absences')} icon={<FileText />} tooltip="Absence Explanations">
-                                {user.role === 'Student' ? 'My Absences' : 'Absence Explanations'}
+                            <SidebarMenuButton isActive={isActive('/absences')} tooltip="Absence Explanations">
+                                <FileText className="mr-2" />
+                                {user.role === 'student' ? 'My Absences' : 'Absence Explanations'}
                             </SidebarMenuButton>
                          </Link>
                     </SidebarMenuItem>
 
                     {/* Admin Only: User Management */}
-                    {user.role === 'Admin' && (
+                    {user.role === 'admin' && (
                          <SidebarMenuItem>
                             <Link href="/users" passHref>
-                                <SidebarMenuButton isActive={isActive('/users')} icon={<Settings />} tooltip="User Management">
+                                <SidebarMenuButton isActive={isActive('/users')} tooltip="User Management">
+                                    <Settings className="mr-2" />
                                     User Management
                                 </SidebarMenuButton>
                             </Link>
@@ -153,10 +158,11 @@ export function AppSidebar() {
                     )}
 
                      {/* Student Only: Profile (Example) */}
-                    {user.role === 'Student' && (
+                    {user.role === 'student' && (
                          <SidebarMenuItem>
                             <Link href="/profile" passHref> {/* Example route */}
-                                <SidebarMenuButton isActive={isActive('/profile')} icon={<BookUser />} tooltip="My Profile">
+                                <SidebarMenuButton isActive={isActive('/profile')} tooltip="My Profile">
+                                    <BookUser className="mr-2" />
                                     My Profile
                                 </SidebarMenuButton>
                             </Link>
@@ -168,7 +174,7 @@ export function AppSidebar() {
             <SidebarFooter className="p-4 flex flex-col gap-3">
                 <div className={cn("flex items-center gap-3 transition-opacity duration-200", state === 'collapsed' && 'opacity-0')}>
                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={user.avatar} alt={user.name} />
+                       
                         <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                      </Avatar>
                      <div>

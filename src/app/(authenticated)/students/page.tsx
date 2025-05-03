@@ -15,131 +15,176 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from '@/hooks/use-auth'; // Import useAuth
 import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
 import { Badge } from '@/components/ui/badge'; // Import Badge
-
-
-// Placeholder data - replace with actual data fetching
-const studentsData = [
-    { id: 'stu-1', name: 'Alice Smith', email: 'alice.s@example.com', class: 'Mathematics 101', status: 'Active' },
-    { id: 'stu-2', name: 'Bob Johnson', email: 'bob.j@example.com', class: 'Physics 201', status: 'Active' },
-    { id: 'stu-3', name: 'Charlie Brown', email: 'charlie.b@example.com', class: 'Mathematics 101', status: 'Inactive' },
-    { id: 'stu-4', name: 'Diana Prince', email: 'diana.p@example.com', class: 'History 10A', status: 'Active' },
-    { id: 'stu-5', name: 'Ethan Hunt', email: 'ethan.h@example.com', class: 'Physics 201', status: 'Active' },
-];
-
-const classesData = [
-    { id: 'cls-1', name: 'Mathematics 101' },
-    { id: 'cls-2', name: 'Physics 201' },
-    { id: 'cls-3', name: 'History 10A' },
-];
-
+import { useEffect } from 'react';
 
 const StudentsPage: FC = () => {
     const { user, loading } = useAuth(); // Use auth hook
-    const [students, setStudents] = React.useState(studentsData);
+    const [students, setStudents] = React.useState<any[]>([]);
+    const [classes, setClasses] = React.useState<any[]>([]);
     const [searchTerm, setSearchTerm] = React.useState("");
     const [filterClass, setFilterClass] = React.useState<string>("all"); // Default to 'all'
     const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
-    const [editingStudent, setEditingStudent] = React.useState<typeof studentsData[0] | null>(null);
-     const [isSubmitting, setIsSubmitting] = React.useState(false); // For form submissions
+    const [editingStudent, setEditingStudent] = React.useState<any | null>(null);
+    const [isSubmitting, setIsSubmitting] = React.useState(false); // For form submissions
+    const [isLoading, setIsLoading] = React.useState(true);
 
-    const handleEditClick = (student: typeof studentsData[0]) => {
+    // Fetch students and classes data
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [studentsRes, classesRes] = await Promise.all([
+                    fetch('/api/students'),
+                    fetch('/api/classes')
+                ]);
+                
+                if (!studentsRes.ok || !classesRes.ok) {
+                    throw new Error('Failed to fetch data');
+                }
+
+                const studentsData = await studentsRes.json();
+                const classesData = await classesRes.json();
+
+                setStudents(studentsData);
+                setClasses(classesData);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    const handleEditClick = (student: any) => {
         setEditingStudent(student);
         setIsEditDialogOpen(true);
     };
 
-    // Add student form handling (simplified) - Admin only
-    const handleAddStudent = (event: React.FormEvent<HTMLFormElement>) => {
+    // Add student form handling
+    const handleAddStudent = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-         if (user?.role !== 'Admin') return; // Prevent non-admins
-         setIsSubmitting(true);
-        const formData = new FormData(event.currentTarget);
-        const newStudent = {
-            id: `stu-${Date.now()}`, // Simple ID generation
-            name: formData.get('name') as string,
-            email: formData.get('email') as string,
-            // Find class name from selected ID for display consistency (assuming value is ID)
-            class: classesData.find(c => c.id === formData.get('class'))?.name ?? 'Unknown',
-            status: 'Active', // Default status
-        };
-         // Simulate API call
-        setTimeout(() => {
-             console.log("Adding student:", newStudent);
-            setStudents([...students, newStudent]);
-             setIsSubmitting(false);
-             setIsAddDialogOpen(false);
-             // Reset form if needed (can be done by closing dialog or explicitly)
-        }, 500);
+        if (user?.role !== 'admin') return;
+        
+        setIsSubmitting(true);
+        try {
+            const formData = new FormData(event.currentTarget);
+            const newStudent = {
+                name: formData.get('name') as string,
+                email: formData.get('email') as string,
+                class: formData.get('class') as string,
+                password: formData.get('password') as string,
+                role: 'student',
+                status: 'Active'
+            };
+
+            const response = await fetch('/api/students', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newStudent)
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to add student');
+            }
+
+            const addedStudent = await response.json();
+            setStudents([...students, addedStudent]);
+            setIsAddDialogOpen(false);
+        } catch (error) {
+            console.error('Error adding student:', error);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
-    // Edit student form handling (simplified) - Admin only
-    const handleEditStudent = (event: React.FormEvent<HTMLFormElement>) => {
-         event.preventDefault();
-         if (!editingStudent || user?.role !== 'Admin') return;
-         setIsSubmitting(true);
+    // Edit student form handling
+    const handleEditStudent = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!editingStudent || user?.role !== 'admin') return;
+        
+        setIsSubmitting(true);
+        try {
+            const formData = new FormData(event.currentTarget);
+            const updatedStudent = {
+                ...editingStudent,
+                name: formData.get('name') as string,
+                email: formData.get('email') as string,
+                class: formData.get('class') as string,
+                status: formData.get('status') as string
+            };
 
-         const formData = new FormData(event.currentTarget);
-         const updatedStudent = {
-             ...editingStudent,
-             name: formData.get('name') as string,
-             email: formData.get('email') as string,
-             // Find class name from selected ID for display consistency
-             class: classesData.find(c => c.id === formData.get('class'))?.name ?? editingStudent.class,
-             status: formData.get('status') as string, // Allow status update
-         };
+            const response = await fetch(`/api/students/${editingStudent._id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedStudent)
+            });
 
-          // Simulate API call
-        setTimeout(() => {
-             console.log("Updating student:", updatedStudent);
-            setStudents(students.map(s => s.id === editingStudent.id ? updatedStudent : s));
-             setIsSubmitting(false);
-             setIsEditDialogOpen(false);
-             setEditingStudent(null);
-         }, 500);
+            if (!response.ok) {
+                throw new Error('Failed to update student');
+            }
+
+            const updatedData = await response.json();
+            setStudents(students.map(s => s._id === editingStudent._id ? updatedData : s));
+            setIsEditDialogOpen(false);
+            setEditingStudent(null);
+        } catch (error) {
+            console.error('Error updating student:', error);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
+    const handleDeleteStudent = async (studentId: string) => {
+        if (user?.role !== 'admin') return;
+        
+        if (window.confirm('Are you sure you want to delete this student?')) {
+            try {
+                const response = await fetch(`/api/students?id=${studentId}`, {
+                    method: 'DELETE'
+                });
 
-    const handleDeleteStudent = (studentId: string) => {
-         if (user?.role !== 'Admin') return;
-        // Add confirmation dialog here in a real app
-         if (window.confirm(`Are you sure you want to delete student ${studentId}?`)) {
-             // Simulate API call
-             setTimeout(() => {
-                 console.log("Deleting student:", studentId);
-                setStudents(students.filter(student => student.id !== studentId));
-             }, 300);
+                if (!response.ok) {
+                    throw new Error('Failed to delete student');
+                }
+
+                setStudents(students.filter(student => student._id !== studentId));
+            } catch (error) {
+                console.error('Error deleting student:', error);
+            }
         }
     };
 
     const filteredStudents = students.filter(student => {
         const nameMatch = student.name.toLowerCase().includes(searchTerm.toLowerCase());
         const emailMatch = student.email.toLowerCase().includes(searchTerm.toLowerCase());
-        // Class match uses class *name* for filtering now
-        const classMatch = filterClass === "all" || student.class === classesData.find(c => c.id === filterClass)?.name;
+        const classMatch =
+            filterClass === "all" ||
+            (student.class && (student.class._id === filterClass || student.class._id?.toString() === filterClass));
         return (nameMatch || emailMatch) && classMatch;
     });
 
-     if (loading) {
-         return (
+    if (loading || isLoading) {
+        return (
             <div className="container mx-auto py-6 space-y-6">
                 <Skeleton className="h-8 w-64 mb-4" />
-                 <Skeleton className="h-12 w-full mb-4" /> {/* Header/Button area */}
-                 <Skeleton className="h-96 rounded-lg" /> {/* Table area */}
+                <Skeleton className="h-12 w-full mb-4" />
+                <Skeleton className="h-96 rounded-lg" />
             </div>
         );
-     }
+    }
 
-      // Redirect or show message if user role is not Admin or Teacher
-     if (user?.role === 'Student') {
-        return (
+    // Redirect or show message if user role is not Admin or Teacher
+    if (user?.role === 'student') {
+        return (    
             <div className="container mx-auto py-6 text-center">
                 <Info className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                 <h1 className="text-2xl font-semibold">Access Denied</h1>
                 <p className="text-muted-foreground">You do not have permission to view the student management page.</p>
-             </div>
-         );
-     }
-
+            </div>
+        );
+    }
 
     return (
         <div className="container mx-auto py-6 space-y-6">
@@ -147,11 +192,11 @@ const StudentsPage: FC = () => {
                 <div>
                     <h1 className="text-3xl font-bold text-primary">Student Management</h1>
                     <p className="text-muted-foreground">
-                        {user?.role === 'Admin' ? 'Add, edit, or delete student records.' : 'View student records.'}
+                        {user?.role === 'admin' ? 'Add, edit, or delete student records.' : 'View student records.'}
                     </p>
                 </div>
                 {/* Add Student Button - Admin Only */}
-                {user?.role === 'Admin' && (
+                {user?.role === 'admin' && (
                     <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                         <DialogTrigger asChild>
                             <Button size="sm" className="bg-primary hover:bg-primary/90">
@@ -175,15 +220,19 @@ const StudentsPage: FC = () => {
                                     <Input id="email" name="email" type="email" className="col-span-3" required disabled={isSubmitting}/>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="password" className="text-right">Password</Label>
+                                    <Input id="password" name="password" type="password" className="col-span-3" required disabled={isSubmitting}/>
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
                                     <Label htmlFor="class" className="text-right">Class</Label>
                                     <Select name="class" required disabled={isSubmitting}>
                                         <SelectTrigger className="col-span-3">
                                             <SelectValue placeholder="Select a class" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {classesData.map((cls) => (
+                                            {classes.map((cls) => (
                                                 // Submit class ID for easier backend processing
-                                                <SelectItem key={cls.id} value={cls.id}>
+                                                <SelectItem key={cls._id} value={cls._id}>
                                                     {cls.name}
                                                 </SelectItem>
                                             ))}
@@ -204,7 +253,7 @@ const StudentsPage: FC = () => {
                 )}
 
                  {/* Edit Student Dialog - Admin Only */}
-                 {user?.role === 'Admin' && (
+                 {user?.role === 'admin' && (
                     <Dialog open={isEditDialogOpen} onOpenChange={(open) => { setIsEditDialogOpen(open); if (!open) setEditingStudent(null); }}>
                         <DialogContent className="sm:max-w-[425px]">
                             <DialogHeader>
@@ -224,14 +273,14 @@ const StudentsPage: FC = () => {
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Label htmlFor="edit-class" className="text-right">Class</Label>
-                                    <Select name="class" defaultValue={classesData.find(c => c.name === editingStudent?.class)?.id} required disabled={isSubmitting}>
+                                    <Select name="class" defaultValue={classes.find(c => c.name === editingStudent?.class)?._id} required disabled={isSubmitting}>
                                         <SelectTrigger className="col-span-3">
                                             <SelectValue placeholder="Select a class" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {classesData.map((cls) => (
+                                            {classes.map((cls) => (
                                                 // Submit class ID
-                                                <SelectItem key={cls.id} value={cls.id}>
+                                                <SelectItem key={cls._id} value={cls._id}>
                                                     {cls.name}
                                                 </SelectItem>
                                             ))}
@@ -287,8 +336,8 @@ const StudentsPage: FC = () => {
                              </SelectTrigger>
                              <SelectContent>
                                 <SelectItem value="all">All Classes</SelectItem>
-                                {classesData.map((cls) => (
-                                    <SelectItem key={cls.id} value={cls.id}> {/* Filter by ID */}
+                                {classes.map((cls) => (
+                                    <SelectItem key={cls._id} value={cls._id}> {/* Filter by ID */}
                                         {cls.name}
                                     </SelectItem>
                                 ))}
@@ -306,22 +355,22 @@ const StudentsPage: FC = () => {
                                     <TableHead>Class</TableHead>
                                     <TableHead>Status</TableHead>
                                     {/* Actions only for Admin */}
-                                    {user?.role === 'Admin' && <TableHead className="text-right">Actions</TableHead>}
+                                    {user?.role === 'admin' && <TableHead className="text-right">Actions</TableHead>}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {filteredStudents.length > 0 ? filteredStudents.map((student) => (
-                                    <TableRow key={student.id}>
+                                    <TableRow key={student._id}>
                                         <TableCell className="font-medium">{student.name}</TableCell>
                                         <TableCell>{student.email}</TableCell>
-                                        <TableCell>{student.class}</TableCell>
+                                        <TableCell>{student.class?.name || '-'}</TableCell>
                                         <TableCell>
                                              <Badge variant={student.status === 'Active' ? 'default' : 'secondary'} className={student.status === 'Active' ? 'bg-green-500 hover:bg-green-600' : ''}>
                                                 {student.status}
                                             </Badge>
                                         </TableCell>
                                         {/* Actions Column - Admin Only */}
-                                        {user?.role === 'Admin' && (
+                                        {user?.role === 'admin' && (
                                             <TableCell className="text-right">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
@@ -338,7 +387,7 @@ const StudentsPage: FC = () => {
                                                         <DropdownMenuSeparator />
                                                         <DropdownMenuItem
                                                             className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                                                            onClick={() => handleDeleteStudent(student.id)}
+                                                            onClick={() => handleDeleteStudent(student._id)}
                                                         >
                                                             <Trash2 className="mr-2 h-4 w-4" /> Delete
                                                         </DropdownMenuItem>
@@ -349,7 +398,7 @@ const StudentsPage: FC = () => {
                                     </TableRow>
                                 )) : (
                                      <TableRow>
-                                        <TableCell colSpan={user?.role === 'Admin' ? 5 : 4} className="text-center h-24 text-muted-foreground">
+                                        <TableCell colSpan={user?.role === 'admin' ? 5 : 4} className="text-center h-24 text-muted-foreground">
                                             No students found.
                                         </TableCell>
                                     </TableRow>
