@@ -85,10 +85,14 @@ export function RecentAbsencesTable({ userRole, userId }: RecentAbsencesTablePro
           </TableRow>
         </TableHeader>
         <TableBody>
-          {recentAbsences.length > 0 ? recentAbsences.map((absence) => (
-            <TableRow key={absence.id}>
+          {recentAbsences.length > 0 ? recentAbsences.map((absence,idx) => (
+            <TableRow key={absence._id || absence.id || idx}>
               {(userRole === 'admin' || userRole === 'teacher') && <TableCell className="font-medium">{absence.studentName}</TableCell>}
-              <TableCell>{format(absence.date, "MMM d, yyyy")}</TableCell>
+              <TableCell>
+                {absence.date && !isNaN(new Date(absence.date).getTime())
+                 ? format(new Date(absence.date), "MMM d, yyyy")
+                 : "N/A"}
+                  </TableCell>
               <TableCell className="max-w-[150px] truncate">
                 <TooltipProvider>
                   <Tooltip>

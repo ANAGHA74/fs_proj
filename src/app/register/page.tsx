@@ -101,7 +101,6 @@ const RegisterPage: FC = () => {
           <CardTitle className="text-3xl font-bold text-primary flex items-center justify-center gap-2">
              <KeyRound className="w-8 h-8" /> AttendEase
           </CardTitle>
-           <CardDescription>Create your simulated account (use @example.com)</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -203,7 +202,7 @@ const RegisterPage: FC = () => {
               <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>
                  {isSubmitting ? 'Registering...' : (
                     <>
-                        <UserPlus className="mr-2 h-4 w-4" /> Register (Simulated)
+                        <UserPlus className="mr-2 h-4 w-4" /> Register 
                     </>
                  )}
               </Button>

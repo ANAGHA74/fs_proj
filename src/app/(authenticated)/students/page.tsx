@@ -363,7 +363,9 @@ const StudentsPage: FC = () => {
                                     <TableRow key={student._id}>
                                         <TableCell className="font-medium">{student.name}</TableCell>
                                         <TableCell>{student.email}</TableCell>
-                                        <TableCell>{student.class?.name || '-'}</TableCell>
+                                        <TableCell> {student.classes && student.classes.length > 0
+    ? student.classes.map((cls: any) => cls.name).join(', ')
+    : '-'}</TableCell>
                                         <TableCell>
                                              <Badge variant={student.status === 'Active' ? 'default' : 'secondary'} className={student.status === 'Active' ? 'bg-green-500 hover:bg-green-600' : ''}>
                                                 {student.status}

@@ -37,25 +37,12 @@ type UserType = {
 };
 
 // Simulate fetching students for a class (Teacher/Admin view)
-const getStudentsForClass = (classId: string) => {
-     console.log(`Fetching students for class: ${classId}`); // Simulate API call
-     // In real app, fetch based on classId
-     return [
-        { id: 'stu-1', name: 'Alice Smith', isPresent: true },
-        { id: 'stu-2', name: 'Bob Johnson', isPresent: true },
-        { id: 'stu-3', name: 'Charlie Brown', isPresent: false },
-        { id: 'stu-4', name: 'Diana Prince', isPresent: true },
-        { id: 'stu-5', name: 'Ethan Hunt', isPresent: true },
-        { id: 'stu-6', name: 'Fiona Glenanne', isPresent: false },
-        { id: 'stu-7', name: 'George Constanza', isPresent: true },
-     ];
-};
 
 const AttendancePage: FC = () => {
     const { user, loading } = useAuth();
     const [selectedClass, setSelectedClass] = React.useState<string | null>(user?.role === 'student' ? 'all' : null);
     const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(new Date());
-    const [studentAttendance, setStudentAttendance] = React.useState<Array<{ id: string; name: string; isPresent: boolean }>>([]); // Teacher/Admin state
+    
     const [studentRecords, setStudentRecords] = React.useState<Array<{ date: Date; className: string; status: string; reason?: string }>>([]); // Student state
     const [searchTerm, setSearchTerm] = React.useState("");
     const [filterStatus, setFilterStatus] = React.useState<"all" | "present" | "absent">("all");
@@ -96,39 +83,9 @@ const AttendancePage: FC = () => {
     }, [selectedClass, selectedDate]);
 
     // Effect to fetch students when class/date changes (for Teacher/Admin)
-     React.useEffect(() => {
-        if (user?.role === 'teacher' || user?.role === 'admin') {
-             if (selectedClass && selectedClass !== 'all' && selectedDate) { // Ensure a specific class is selected
-                 setIsFetchingStudents(true);
-                 // Simulate API call
-                setTimeout(() => {
-                    const fetchedStudents = getStudentsForClass(selectedClass);
-                    // In a real app, fetch attendance status for the selected date too
-                    // For simulation, we use the default `isPresent` from getStudentsForClass
-                     setStudentAttendance(fetchedStudents);
-                     setIsFetchingStudents(false);
-                 }, 300);
-            } else {
-                setStudentAttendance([]); // Clear if no class/date or 'all' selected
-            }
-        }
-     }, [selectedClass, selectedDate, user?.role]);
-
+    
      // Effect to fetch student's own records (for Student)
-      React.useEffect(() => {
-        if (user?.role === 'student' && selectedDate) {
-            setIsFetchingRecords(true);
-             // Simulate API call
-            setTimeout(() => {
-                 // Fetch records for the student, optionally filtered by class and selected date/range
-                 // Pass null if 'all' is selected, otherwise pass the class ID
-                const classFilter = selectedClass === 'all' ? null : selectedClass;
-                const records = getStudentAttendanceRecord(user.id, classFilter, selectedDate);
-                 setStudentRecords(Array.isArray(records) ? records : (records ? [ { date: selectedDate, className: classes.find(c => c.id === selectedClass)?.name ?? 'N/A', ...records }] : []));
-                 setIsFetchingRecords(false);
-            }, 300);
-        }
-      }, [selectedClass, selectedDate, user?.role, user?.id]);
+      
 
     useEffect(() => {
         if (selectedClass && selectedClass !== 'all') {
@@ -174,6 +131,11 @@ const AttendancePage: FC = () => {
         }
     }, [user, selectedClass, selectedDate]);
 
+    // After fetching studentRecords (array of attendance records for the student)
+    const totalDays = studentRecords.length;
+    const presentDays = studentRecords.filter(r => r.status && r.status.toLowerCase() === 'present').length;
+    const attendancePercentage = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(2) : 'N/A';
+
     // --- Teacher/Admin Specific Handlers ---
     const handleAttendanceChange = (studentId: string, status: string) => {
         setAttendance(prev => ({ ...prev, [studentId]: status }));
@@ -191,28 +153,31 @@ const AttendancePage: FC = () => {
         setAttendance(allAbsent);
     };
 
-    const filteredStudents = studentAttendance.filter(student => {
+    const filteredStudents =students.filter(student => {
         const nameMatch = student.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const statusMatch = filterStatus === 'all' || (filterStatus === 'present' && student.isPresent) || (filterStatus === 'absent' && !student.isPresent);
-        return nameMatch && statusMatch;
+        const status = attendance[student._id] || 'absent';
+const statusMatch = filterStatus === 'all' || (filterStatus === 'present' && status === 'present') || (filterStatus === 'absent' && status === 'absent');
+return nameMatch && statusMatch;
     });
-
-    const presentCount = filteredStudents.filter(s => s.isPresent).length;
+    const presentCount = filteredStudents.filter(s => (attendance[s._id] || 'absent') === 'present').length;
     const absentCount = filteredStudents.length - presentCount;
 
     const handleSaveAttendance = async () => {
+        const payload = {
+            class: selectedClass,
+            date: selectedDate,
+            markedBy: user?.id,
+            records: students.map(student => ({
+                student: student._id,
+                status: attendance[student._id] || 'absent',
+            })),
+        };
+        console.log("Attendance payload:", payload);
+
         const res = await fetch('/api/attendance', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                class: selectedClass,
-                date: selectedDate,
-                markedBy: user?.id,
-                records: students.map(student => ({
-                    student: student._id,
-                    status: attendance[student._id] || 'absent',
-                })),
-            }),
+            body: JSON.stringify(payload),
         });
         if (res.ok) {
             alert('Attendance saved successfully!');
@@ -349,7 +314,9 @@ const AttendancePage: FC = () => {
                                         className="w-full justify-start text-left font-normal"
                                     >
                                         <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                                        {selectedDate && !isNaN(new Date(selectedDate).getTime())
+  ? format(selectedDate, "PPP")
+  : "Pick a date"}
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0">
@@ -388,7 +355,10 @@ const AttendancePage: FC = () => {
                             <TableBody>
                                 {studentRecords.map((record, idx) => (
                                     <TableRow key={idx}>
-                                        <TableCell>{format(new Date(record.date), "PPP")}</TableCell>
+                                        <TableCell>{record.date && !isNaN(new Date(record.date).getTime())
+    ? format(new Date(record.date), "PPP")
+    : "N/A"}
+</TableCell>
                                         <TableCell>{record.className}</TableCell>
                                         <TableCell>{getStatusBadge(record.status)}</TableCell>
                                         <TableCell>{record.reason || '-'}</TableCell>
@@ -396,6 +366,9 @@ const AttendancePage: FC = () => {
                                 ))}
                             </TableBody>
                         </Table>
+                        <div className="mb-4">
+                            <h2 className="text-lg font-semibold">Attendance Percentage: {attendancePercentage}%</h2>
+                        </div>
                     </CardContent>
                 </Card>
             )}

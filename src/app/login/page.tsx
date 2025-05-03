@@ -90,16 +90,7 @@ const LoginPage: FC = () => {
           <CardTitle className="text-3xl font-bold text-primary flex items-center justify-center gap-2">
             <KeyRound className="w-8 h-8" /> AttendEase
           </CardTitle>
-          <CardDescription>Login to manage attendance</CardDescription>
-          <div className="text-xs text-muted-foreground pt-2">
-            <p>Hint: Use emails like:</p>
-            <ul className="list-disc list-inside">
-              <li>admin@example.com (Admin)</li>
-              <li>teacher@example.com (Teacher)</li>
-              <li>student@example.com (Student)</li>
-            </ul>
-            <p>(Password: any 6+ characters)</p>
-          </div>
+          
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -145,7 +136,7 @@ const LoginPage: FC = () => {
               <Link href="/register" className="underline text-primary hover:text-primary/80">
                 Register
               </Link>
-              {' '} (Registration is simulated)
+              {' '} 
             </p>
           </div>
         </CardContent>

@@ -31,11 +31,19 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-  class: {
+  classes: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Class',
     required: false
-  },
+  }],
+  enrollmentDate: Date,
+major: String,
+currentClasses: [String],
+emergencyContact: {
+  name: String,
+  phone: String,
+  relationship: String,
+}
 });
 
 // Update the updatedAt field before saving

@@ -10,10 +10,10 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const classId = searchParams.get('classId');
     const filter: any = { role: 'student' };
-    if (classId) filter.class = classId;
+    if (classId) filter.classes = classId;
     const students = await User.find(filter)
-      .select('name email _id class status')
-      .populate('class', 'name')
+      .select('name email _id classes status')
+      .populate('classes', 'name')
       .sort({ name: 1 });
     return NextResponse.json(students);
   } catch (error) {
