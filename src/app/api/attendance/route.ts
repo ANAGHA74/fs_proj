@@ -8,12 +8,28 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const classId = searchParams.get('classId');
     const date = searchParams.get('date');
+    const studentId = searchParams.get('studentId');
     const filter: any = {};
     if (classId && classId !== 'all') filter.class = classId;
-    if (date) filter.date = new Date(date);
+    if (date) {
+      const start = new Date(date);
+      start.setUTCHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setUTCDate(end.getUTCDate() + 1);
+      filter.date = { $gte: start, $lt: end };
+
+      console.log('Searching attendance from', start, 'to', end);
+    }
+    if (studentId) filter.student = studentId;
+    console.log('Attendance API GET called with:');
+    console.log('classId:', classId, 'date:', date, 'studentId:', studentId);
+    console.log('MongoDB filter:', filter);
+
     const attendance = await Attendance.find(filter)
       .populate('student', 'name')
       .populate('class', 'name');
+      console.log('Attendance records found:', attendance);
+
     return NextResponse.json(attendance);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch attendance' }, { status: 500 });

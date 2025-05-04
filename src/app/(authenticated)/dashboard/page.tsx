@@ -1,6 +1,6 @@
 "use client"; // Required because we use hooks
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import type { FC } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CalendarCheck, Users, UserCheck, AlertTriangle, FileText, CheckCircle } from 'lucide-react';
@@ -12,12 +12,36 @@ import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
 const DashboardPage: FC = () => {
     const { user, loading } = useAuth();
     const [stats, setStats] = React.useState<any>(null);
+    const [attendanceSummary, setAttendanceSummary] = useState([]);
+    const [studentAttendance, setStudentAttendance] = useState<{ present: number; total: number } | null>(null);
 
     React.useEffect(() => {
       fetch('/api/stats')
         .then(res => res.json())
         .then(data => setStats(data));
     }, []);
+
+    useEffect(() => {
+      let url = '/api/attendance/summary';
+      if (user?.role === 'student') {
+        url += `?studentId=${user.id}`;
+      }
+      fetch(url)
+        .then(res => res.json())
+        .then(data => setAttendanceSummary(data));
+    }, [user]);
+
+    useEffect(() => {
+      if (user?.role === 'student') {
+        fetch(`/api/attendance?studentId=${user.id}`)
+          .then(res => res.json())
+          .then(data => {
+            const total = data.length;
+            const present = data.filter((rec: any) => rec.status === 'present').length;
+            setStudentAttendance({ present, total });
+          });
+      }
+    }, [user]);
 
     if (loading || !user || !stats) {
         return (
@@ -98,24 +122,53 @@ const DashboardPage: FC = () => {
 
             {/* Charts and Tables - Conditionally render or adapt */}
             <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-                <Card className="shadow-sm hover:shadow-md transition-shadow">
-                    <CardHeader>
-                        <CardTitle>Weekly Attendance Overview</CardTitle>
-                        <CardDescription>Class attendance trends for the past 7 days.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <AttendanceChart /> {/* Needs adaptation if showing student-specific data */}
-                    </CardContent>
-                </Card>
-                <Card className="shadow-sm hover:shadow-md transition-shadow">
-                    <CardHeader>
-                        <CardTitle>Recent Absence Explanations</CardTitle>
-                        <CardDescription>Latest submissions needing review.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <RecentAbsencesTable userRole={user.role} userId={user.id} />
-                    </CardContent>
-                </Card>
+                {user?.role === 'student' ? (
+                    <Card className="shadow-sm hover:shadow-md transition-shadow">
+                        <CardHeader>
+                            <CardTitle>My Attendance Percentage</CardTitle>
+                            <CardDescription>
+                                Your overall attendance across all classes.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {studentAttendance ? (
+                                <div className="text-4xl font-bold text-primary">
+                                    {studentAttendance.total > 0
+                                        ? `${((studentAttendance.present / studentAttendance.total) * 100).toFixed(2)}%`
+                                        : "N/A"}
+                                </div>
+                            ) : (
+                                <Skeleton className="h-10 w-32" />
+                            )}
+                            <p className="text-xs text-muted-foreground mt-2">
+                                {studentAttendance
+                                    ? `${studentAttendance.present} out of ${studentAttendance.total} classes attended`
+                                    : ""}
+                            </p>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <Card className="shadow-sm hover:shadow-md transition-shadow">
+                        <CardHeader>
+                            <CardTitle>Weekly Attendance Overview</CardTitle>
+                            <CardDescription>Class attendance trends for the past 7 days.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <AttendanceChart attendanceSummary={attendanceSummary} />
+                        </CardContent>
+                    </Card>
+                )}
+                {(user?.role === 'admin' || user?.role === 'teacher') && (
+                    <Card className="shadow-sm hover:shadow-md transition-shadow">
+                        <CardHeader>
+                            <CardTitle>Recent Absence Explanations</CardTitle>
+                            <CardDescription>Latest submissions needing review.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <RecentAbsencesTable userRole={user.role} userId={user.id} />
+                        </CardContent>
+                    </Card>
+                )}
             </div>
         </div>
     );

@@ -36,6 +36,12 @@ type UserType = {
   class?: string;
 };
 
+function getUTCMidnightISOString(date: Date) {
+  const localDate = new Date(date);
+  localDate.setHours(0, 0, 0, 0);
+  return new Date(localDate.getTime() - localDate.getTimezoneOffset() * 60000).toISOString();
+}
+
 // Simulate fetching students for a class (Teacher/Admin view)
 
 const AttendancePage: FC = () => {
@@ -53,6 +59,8 @@ const AttendancePage: FC = () => {
     const [classes, setClasses] = React.useState<any[]>([]);
     const [classesLoading, setClassesLoading] = React.useState(true);
     const [students, setStudents] = useState<UserType[]>([]);
+    const [allAttendanceRecords, setAllAttendanceRecords] = useState<any[]>([]);
+    const [showAllAttendance, setShowAllAttendance] = useState(false);
 
     // Fetch classes from API
     React.useEffect(() => {
@@ -67,7 +75,7 @@ const AttendancePage: FC = () => {
 
     const fetchAttendance = (classId: string, date: Date) => {
         setAttendanceLoading(true);
-        fetch(`/api/attendance?classId=${classId}&date=${date.toISOString()}`)
+        fetch(`/api/attendance?classId=${classId}&date=${getUTCMidnightISOString(date)}`)
             .then(res => res.json())
             .then(data => {
                 setAttendance(data);
@@ -103,7 +111,7 @@ const AttendancePage: FC = () => {
 
     useEffect(() => {
         if (selectedClass && selectedDate) {
-            fetch(`/api/attendance?classId=${selectedClass}&date=${selectedDate.toISOString()}`)
+            fetch(`/api/attendance?classId=${selectedClass}&date=${getUTCMidnightISOString(selectedDate)}`)
                 .then(res => res.json())
                 .then(data => {
                     if (Array.isArray(data)) {
@@ -122,7 +130,7 @@ const AttendancePage: FC = () => {
     // In the student view section:
     useEffect(() => {
         if (user?.role === 'student' && selectedClass && selectedDate) {
-            fetch(`/api/attendance?classId=${selectedClass}&date=${selectedDate.toISOString()}`)
+            fetch(`/api/attendance?classId=${selectedClass}&date=${getUTCMidnightISOString(selectedDate)}`)
                 .then(res => res.json())
                 .then(data => {
                     const record = data.find((rec: any) => rec.student._id === user.id);
@@ -249,6 +257,13 @@ return nameMatch && statusMatch;
      // return null; // No record found
     };
 
+    const fetchAllAttendanceRecords = async () => {
+        if (!selectedClass) return;
+        const res = await fetch(`/api/attendance?classId=${selectedClass}`);
+        const data = await res.json();
+        setAllAttendanceRecords(Array.isArray(data) ? data : []);
+    };
+
     // --- Loading State ---
      if (loading) {
         return (
@@ -353,74 +368,150 @@ return nameMatch && statusMatch;
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {studentRecords.map((record, idx) => (
-                                    <TableRow key={idx}>
-                                        <TableCell>{record.date && !isNaN(new Date(record.date).getTime())
-    ? format(new Date(record.date), "PPP")
-    : "N/A"}
-</TableCell>
-                                        <TableCell>{record.className}</TableCell>
-                                        <TableCell>{getStatusBadge(record.status)}</TableCell>
-                                        <TableCell>{record.reason || '-'}</TableCell>
-                                    </TableRow>
-                                ))}
+                                {studentRecords.length > 0 ? (
+    studentRecords.map((record, idx) => (
+      <TableRow key={idx}>
+        <TableCell>
+          {selectedDate && !isNaN(new Date(selectedDate).getTime())
+            ? format(new Date(selectedDate), "PPP")
+            : "N/A"}
+        </TableCell>
+        <TableCell>{record.className}</TableCell>
+        <TableCell>{getStatusBadge(record.status)}</TableCell>
+        <TableCell>{record.reason || '-'}</TableCell>
+      </TableRow>
+    ))
+  ) : (
+    <TableRow>
+      <TableCell colSpan={4} className="text-center text-muted-foreground">
+        No attendance record found for the selected class and date.
+      </TableCell>
+    </TableRow>
+  )}
                             </TableBody>
                         </Table>
-                        <div className="mb-4">
-                            <h2 className="text-lg font-semibold">Attendance Percentage: {attendancePercentage}%</h2>
-                        </div>
+                        
                     </CardContent>
                 </Card>
             )}
 
             {/* Teacher/Admin View */}
             {(user?.role === 'teacher' || user?.role === 'admin') && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Attendance List</CardTitle>
-                        <CardDescription>
-                            Mark attendance for the selected class and date
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex justify-between items-center mb-4">
-                            <div className="flex gap-2">
-                                <Button variant="outline" onClick={markAllPresent}>
-                                    Mark All Present
-                                </Button>
-                                <Button variant="outline" onClick={markAllAbsent}>
-                                    Mark All Absent
+                <>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Attendance List</CardTitle>
+                            <CardDescription>
+                                Mark attendance for the selected class and date
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex justify-between items-center mb-4">
+                                <div className="flex gap-2">
+                                    <Button variant="outline" onClick={markAllPresent}>
+                                        Mark All Present
+                                    </Button>
+                                    <Button variant="outline" onClick={markAllAbsent}>
+                                        Mark All Absent
+                                    </Button>
+                                </div>
+                                <Button onClick={handleSaveAttendance}>
+                                    Save Attendance
                                 </Button>
                             </div>
-                            <Button onClick={handleSaveAttendance}>
-                                Save Attendance
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                if (!showAllAttendance) fetchAllAttendanceRecords();
+                                setShowAllAttendance(!showAllAttendance);
+                              }}
+                            >
+                              {showAllAttendance ? "Hide All Attendance Records" : "View All Attendance Records"}
                             </Button>
-                        </div>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Student Name</TableHead>
-                                    <TableHead>Status</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {students.map(student => (
-                                    <TableRow key={student._id}>
-                                        <TableCell>
-                                            <Checkbox
-                                                checked={attendance[student._id] === 'present'}
-                                                onCheckedChange={checked =>
-                                                    handleAttendanceChange(student._id, checked ? 'present' : 'absent')
-                                                }
-                                            />
-                                        </TableCell>
-                                        <TableCell>{student.name}</TableCell>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Student Name</TableHead>
+                                        <TableHead>Status</TableHead>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
+                                </TableHeader>
+                                <TableBody>
+                                    {students.map(student => (
+                                        <TableRow key={student._id}>
+                                            <TableCell>
+                                                <Button
+                                                    variant={attendance[student._id] === 'present' ? "default" : "outline"}
+                                                    size="icon"
+                                                    onClick={() => handleAttendanceChange(student._id, 'present')}
+                                                    style={{ marginRight: 8 }}
+                                                >
+                                                    <Check color={attendance[student._id] === 'present' ? "white" : "green"} />
+                                                </Button>
+                                                <Button
+                                                    variant={attendance[student._id] === 'absent' ? "destructive" : "outline"}
+                                                    size="icon"
+                                                    onClick={() => handleAttendanceChange(student._id, 'absent')}
+                                                >
+                                                    <X color={attendance[student._id] === 'absent' ? "white" : "red"} />
+                                                </Button>
+                                            </TableCell>
+                                            <TableCell>{student.name}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+
+                    {showAllAttendance && (
+                        <Card className="mt-4">
+                            <CardHeader>
+                                <CardTitle>All Attendance Records</CardTitle>
+                                <CardDescription>
+                                    All attendance records for the selected class.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Date</TableHead>
+                                            <TableHead>Student Name</TableHead>
+                                            <TableHead>Status</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {allAttendanceRecords.length > 0 ? (
+                                            allAttendanceRecords.map((rec, idx) => (
+                                                <TableRow key={idx}>
+                                                    <TableCell>
+                                                        {selectedDate ? format(new Date(selectedDate), "PPP") : "N/A"}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {rec.student?.name || "N/A"}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {rec.status ? (
+                                                            <Badge variant={rec.status === "present" ? "default" : "destructive"}>
+                                                                {rec.status.charAt(0).toUpperCase() + rec.status.slice(1)}
+                                                            </Badge>
+                                                        ) : "N/A"}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={3} className="text-center text-muted-foreground">
+                                                    No attendance records found.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                    )}
+                </>
             )}
         </div>
     );
